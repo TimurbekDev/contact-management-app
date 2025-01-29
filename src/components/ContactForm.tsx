@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
 import { IContact } from "../types/ContactType";
+import { IContactFormProps } from "../types/ContactFormProps";
 
-interface ContactFormProps {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (contact: IContact) => void;
-    editContact?: IContact | null;
-}
-
-export const ContactForm: React.FC<ContactFormProps> = ({
+export const ContactForm: React.FC<IContactFormProps> = ({
     open,
     onClose,
     onSubmit,

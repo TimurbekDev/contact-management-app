@@ -1,51 +1,57 @@
-import React, { useState, useCallback } from "react";
-import { Container, Button, Box, Paper, InputBase, debounce } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Container, Button, Box, Paper, InputBase } from "@mui/material";
 import { ContactForm } from "./components/ContactForm";
 import { ContactTable } from "./components/ContactTable";
 import { IContact } from "./types/ContactType";
+import { addContact, deleteContact, getAllContacts, updateContact } from "./services";
 
 const App: React.FC = () => {
-  const [contacts, setContacts] = useState<IContact[]>(
-    JSON.parse(localStorage.getItem("contacts") || "[]")
-  );
+
+  const [contacts, setContacts] = useState<IContact[]>([]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editContact, setEditContact] = useState<IContact | null>(null);
 
-  const updateLocalStorage = useCallback((updatedContacts: IContact[]) => {
-    localStorage.setItem("contacts", JSON.stringify(updatedContacts));
+  const fetchContacts = async () => {
+    const contacts = await getAllContacts()
+    setContacts(contacts);
+  };
+
+
+  useEffect(() => {
+    fetchContacts();
   }, []);
 
-  const handleAddContact = (contact: IContact) => {
-    const updatedContacts = [...contacts, contact];
-    setContacts(updatedContacts);
-    updateLocalStorage(updatedContacts);
+  const handleAddContact = async (payload: IContact) => {
+    await addContact(payload);
+    fetchContacts()
   };
 
-  const handleUpdateContact = (updatedContact: IContact) => {
-    const updatedContacts = contacts.map((contact: IContact) =>
-      contact.id == updatedContact.id ? updatedContact : contact
-    );
-    setContacts(updatedContacts);
-    updateLocalStorage(updatedContacts);
+  const handleUpdateContact = async (payload: IContact) => {
+    await updateContact(payload)
+    fetchContacts()
   };
 
-  const handleDeleteContact = (id: string) => {
-    const updatedContacts = contacts.filter((contact: IContact) => contact.id !== id);
-    setContacts(updatedContacts);
-    updateLocalStorage(updatedContacts);
+  const handleDeleteContact = async (id: string) => {
+    await deleteContact(id);
+    fetchContacts()
   };
+
+
+
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+
+    if (value == '') fetchContacts()
+    else {
+      setContacts((await getAllContacts()).filter((contact: IContact) => contact.name.includes(value)))
+    }
+  };
+
 
   const handleEditClick = (contact: IContact) => {
     setEditContact(contact);
     setIsModalOpen(true);
   };
-
-  const handleSearch = debounce((searchTerm: string) => {
-    const filteredContacts = JSON.parse(localStorage.getItem("contacts") || "[]").filter(
-      (contact: IContact) => contact.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setContacts(filteredContacts);
-  }, 300);
 
   return (
     <Container>
@@ -61,7 +67,7 @@ const App: React.FC = () => {
           <InputBase
             sx={{ ml: 1, flex: 1, padding: "3px", textAlign: "center" }}
             placeholder="Search contact"
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={handleSearchChange}
           />
         </Paper>
         <Button
@@ -74,17 +80,8 @@ const App: React.FC = () => {
           Add
         </Button>
       </Box>
-      <ContactTable
-        contacts={contacts}
-        onDelete={handleDeleteContact}
-        onEdit={handleEditClick}
-      />
-      <ContactForm
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={editContact ? handleUpdateContact : handleAddContact}
-        editContact={editContact}
-      />
+      <ContactTable contacts={contacts} onDelete={handleDeleteContact} onEdit={handleEditClick} />
+      <ContactForm open={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={editContact ? handleUpdateContact : handleAddContact} editContact={editContact} />
     </Container>
   );
 };
